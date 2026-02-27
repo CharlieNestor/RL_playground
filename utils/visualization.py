@@ -72,3 +72,64 @@ def plot_grid(
                         fontsize=12, fontweight='bold', color=color)
                 
     plt.show()
+
+
+def plot_policy(
+    env: MazeEnv, 
+    algorithm: str,
+    policy: Dict[Tuple[int, int], Dict[int, float]]) -> None:
+    """
+    Renders the maze environment grid and overlays the optimal policy using arrows.
+    
+    :param env: The maze environment object containing layout and reward information.
+    :param algorithm: The name of the algorithm used to find the policy.
+    :param policy: A dictionary mapping states (row, col) to their action probabilities.
+    """
+    fig, ax = plt.subplots(figsize=(6, 3))
+    
+    # Set grid lines exactly on the edges of the cells (-0.5, 0.5, 1.5, etc.)
+    ax.set_xticks(np.arange(-0.5, env.width, 1))
+    ax.set_yticks(np.arange(-0.5, env.height, 1))
+    ax.set_xlim(-0.5, env.width - 0.5)
+    ax.set_ylim(-0.5, env.height - 0.5)
+    ax.invert_yaxis()
+    
+    # Hide the tick labels but keep the grid lines
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.tick_params(axis='both', length=0)
+    ax.grid(color='black', linestyle='-', linewidth=2)
+    ax.set_title(f"Optimal Policy ({algorithm})", fontsize=14)
+    
+    # Action to Arrow Mapping
+    # UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3
+    action_to_arrow = {
+        0: '↑',
+        1: '↓',
+        2: '←',
+        3: '→'
+    }
+    
+    # Draw the maze elements and values
+    for r in range(env.height):
+        for c in range(env.width):
+            val = env.maze[r][c]
+            
+            if val == 'X':
+                # Draw a big black X for walls
+                ax.plot(c, r, marker='x', markersize=30, color='black', markeredgewidth=4)
+            elif val == 'G':
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ccffcc')) # Light green highlight for Goal
+            elif val == 'S':
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ffffcc')) # Light yellow for Start
+            
+            if val not in ['X', 'G']:
+                action_probs = policy.get((r, c))
+                if action_probs is not None:
+                    # Find action with highest probability
+                    best_action = max(action_probs, key=action_probs.get)
+                    arrow = action_to_arrow.get(best_action, '')
+                    ax.text(c, r, arrow, ha='center', va='center', 
+                            fontsize=20, fontweight='bold', color='black')
+                
+    plt.show()
