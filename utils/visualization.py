@@ -19,7 +19,8 @@ def plot_grid(
     :param V: A dictionary mapping states (row, col) to their current estimated value.
     :param iteration: The current iteration number of the policy evaluation.
     """
-    fig, ax = plt.subplots(figsize=(6, 3))
+    # Make figsize proportional to the grid dimensions
+    fig, ax = plt.subplots(figsize=(env.width, env.height))
     
     # Set grid lines exactly on the edges of the cells (-0.5, 0.5, 1.5, etc.)
     ax.set_xticks(np.arange(-0.5, env.width, 1))
@@ -51,8 +52,8 @@ def plot_grid(
             val = env.maze[r][c]
             
             if val == 'X':
-                # Draw a big black X for walls
-                ax.plot(c, r, marker='x', markersize=30, color='black', markeredgewidth=4)
+                # Draw a filled dark block for walls that scales automatically
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#404040'))
             elif val == 'G':
                 ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ccffcc')) # Light green highlight for Goal
             elif val == 'S':
@@ -85,7 +86,8 @@ def plot_policy(
     :param algorithm: The name of the algorithm used to find the policy.
     :param policy: A dictionary mapping states (row, col) to their action probabilities.
     """
-    fig, ax = plt.subplots(figsize=(6, 3))
+    # Make figsize proportional to the grid dimensions
+    fig, ax = plt.subplots(figsize=(env.width, env.height))
     
     # Set grid lines exactly on the edges of the cells (-0.5, 0.5, 1.5, etc.)
     ax.set_xticks(np.arange(-0.5, env.width, 1))
@@ -116,8 +118,8 @@ def plot_policy(
             val = env.maze[r][c]
             
             if val == 'X':
-                # Draw a big black X for walls
-                ax.plot(c, r, marker='x', markersize=30, color='black', markeredgewidth=4)
+                # Draw a filled dark block for walls that scales automatically
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#404040'))
             elif val == 'G':
                 ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ccffcc')) # Light green highlight for Goal
             elif val == 'S':
@@ -130,6 +132,6 @@ def plot_policy(
                     best_action = max(action_probs, key=action_probs.get)
                     arrow = action_to_arrow.get(best_action, '')
                     ax.text(c, r, arrow, ha='center', va='center', 
-                            fontsize=20, fontweight='bold', color='black')
+                            fontsize=20, fontweight='bold', color='blue')
                 
     plt.show()

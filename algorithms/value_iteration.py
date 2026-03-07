@@ -1,9 +1,10 @@
-from algorithms.policy_evaluation import PolicyEvaluator
+import time
+from algorithms.policy_evaluation import BaseMazeDPAlgorithm
 
-class ValueIteration(PolicyEvaluator):
+class ValueIteration(BaseMazeDPAlgorithm):
     """
     Solves for the optimal Value Function V*(s) using Value Iteration.
-    Inherits from PolicyEvaluator to reuse environment, initialization, and transition logic.
+    Inherits from BaseMazeDPAlgorithm to reuse environment, initialization, and transition logic.
     """
     
     def value_iteration(self, return_history: bool = False, verbose: bool = True):
@@ -16,6 +17,7 @@ class ValueIteration(PolicyEvaluator):
         :return: The converged optimal Value table V*(s), or (V*, history) if return_history is True
         """
         iteration = 0
+        start_time = time.time()
         history = []
         if return_history:
             history.append(self.V.copy())
@@ -37,18 +39,14 @@ class ValueIteration(PolicyEvaluator):
                     old_value = self.V[state]
                     
                     # BELLMAN OPTIMALITY EQUATION
-                    # V*(s) = max_a [ R(s,a) + gamma * V*(s') ]
-                    max_expected_value = float('-inf')
-                    
+                    # V*(s) = max_a Q(s,a)
+                    # where Q(s,a) = R(s,a) + gamma * V(s')
+                    q_values = []
                     for action in self.actions:
                         next_state, reward = self._get_transition(state, action)
-                        # The environment dynamics wrapper we inherit already handles deterministic transitions
-                        expected_value = reward + self.gamma * self.V[next_state]
+                        q_values.append(reward + self.gamma * self.V[next_state])
                         
-                        if expected_value > max_expected_value:
-                            max_expected_value = expected_value
-                            
-                    new_V[state] = max_expected_value
+                    new_V[state] = max(q_values)
                     
                     # Track the largest change to check for convergence
                     delta = max(delta, abs(old_value - new_V[state]))
@@ -63,7 +61,8 @@ class ValueIteration(PolicyEvaluator):
                 print(f"Iteration {iteration}: max delta = {delta:.6f}")
                 
             if delta < self.theta:
-                print(f"Value iteration converged after {iteration} iterations.")
+                elapsed_time = time.time() - start_time
+                print(f"Value iteration converged after {iteration} iterations. Time taken: {elapsed_time:.4f} seconds")
                 break
                 
         if return_history:
@@ -86,16 +85,16 @@ class ValueIteration(PolicyEvaluator):
                 if self.env.maze[r][c] == 'G' or self.env.maze[r][c] == 'X':
                     continue
                     
-                best_action = None
-                max_expected_value = float('-inf')
-                
+                # 1. Compute Q-values Q(s, a) for all possible actions in this state
+                # Q(s, a) = R(s, a) + gamma * V*(s')
+                q_values = {}
                 for action in self.actions:
                     next_state, reward = self._get_transition(state, action)
-                    expected_value = reward + self.gamma * self.V[next_state]
+                    q_values[action] = reward + self.gamma * self.V[next_state]
                     
-                    if expected_value > max_expected_value:
-                        max_expected_value = expected_value
-                        best_action = action
+                # 2. Extract optimal policy (Greedy)
+                # pi*(s) = argmax_a Q(s, a)
+                best_action = max(q_values, key=q_values.get)
                         
                 # Create a deterministic policy that takes the best action with probability 1.0
                 optimal_policy[state] = {a: 1.0 if a == best_action else 0.0 for a in self.actions}

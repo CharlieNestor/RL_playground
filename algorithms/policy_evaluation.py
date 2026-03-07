@@ -1,9 +1,12 @@
+import time
 from envs.maze_env import MazeEnv, UP, DOWN, LEFT, RIGHT
 
-class PolicyEvaluator:
+class BaseMazeDPAlgorithm:
     """
-    Evaluates a given policy for a MazeEnv using Iterative Policy Evaluation.
-    This calculates the Value Function V(s) for all states under a specific policy.
+    Base class for Dynamic Programming algorithms in a Maze environment.
+    It provides the initialized Value table V(s), available actions,
+    and a helper method (_get_transition) to simulate deterministic transitions
+    given a perfect model of the environment, which is required for DP methods.
     """
     def __init__(self, env: MazeEnv, gamma: float = 0.99, theta: float = 1e-5):
         """
@@ -22,15 +25,15 @@ class PolicyEvaluator:
             for c in range(self.env.width)
         }
         
-        # We need to know the basic actions
+        # Set of feasible actions
         self.actions = self.env.get_actions()
 
     def _get_transition(self, state: tuple, action: int) -> tuple:
         """
         A helper method to simulate the environment's dynamics P(s', r | s, a)
         without actually stepping the environment state.
-        ASSUMPTION: The maze is deterministic, taking an action from 'state' leads to exactly
-        one 'next_state' with probability 1.0, and yields 'reward'.
+        TEMPORARY ASSUMPTION: The maze is deterministic, taking an action from 'state' 
+        leads to exactly one 'next_state' with probability 1.0, and yields 'reward'.
         
         :param state: (row, col)
         :param action: Integer representing UP, DOWN, LEFT, or RIGHT
@@ -58,17 +61,18 @@ class PolicyEvaluator:
     def evaluate_policy(self, policy: dict, return_history: bool = False, verbose: bool = True):
         """
         Iteratively evaluates a policy until the change in value (delta) is less than theta.
-        We are doing synchronous updates to the value table, that is we first compute the new values
-        for all states and then update the value table.
+        We are doing synchronous updates to the value table, that is we first compute the new 
+        values for all states and then update the value table.
         
         :param policy: A dictionary mapping states to action probabilities, 
-                       e.g., {(row, col): {action_int: probability, ...}}
+                        e.g., {(row, col): {action_int: probability, ...}}
                         If a state is not in the policy (like a wall), it's ignored.
         :param return_history: If True, returns a tuple (final_V, history_of_Vs).
         :param verbose: If True, prints the maximum change in value at each iteration.
         :return: The converged Value table V(s), or (V, history) if return_history is True
         """
         iteration = 0
+        start_time = time.time()
         history = []
         if return_history:
             history.append(self.V.copy())
@@ -91,6 +95,7 @@ class PolicyEvaluator:
                     
                     # Look up the action probabilities for this state
                     # e.g., {UP: 0.25, DOWN: 0.25, LEFT: 0.25, RIGHT: 0.25}
+                    # and ignore states not in the policy (like walls)
                     if state not in policy:
                         continue 
                         
@@ -120,7 +125,8 @@ class PolicyEvaluator:
                 print(f"Iteration {iteration}: max delta = {delta:.6f}")
                 
             if delta < self.theta:
-                print(f"Policy evaluation converged after {iteration} iterations.")
+                elapsed_time = time.time() - start_time
+                print(f"Policy evaluation converged after {iteration} iterations. Time taken: {elapsed_time:.4f} seconds")
                 break
                 
         if return_history:
