@@ -73,7 +73,7 @@ class MazeEnv:
         """
         r, c = self.current_state
         
-        # Determine intended next state
+        # Determine intended next state on the grid
         if action == UP: r -= 1
         elif action == DOWN: r += 1
         elif action == LEFT: c -= 1
