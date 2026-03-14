@@ -47,7 +47,7 @@ class MonteCarloPrediction(BaseMazeModelFreeAlgorithm):
         state = self.env.reset()
         
         for _ in range(max_steps):
-            # If we end up in a state without a defined policy (e.g. wall or goal), we stop.
+            # Sanity check to avoid states without a defined policy (e.g. walls or goal)
             if state not in policy:
                 break
                 

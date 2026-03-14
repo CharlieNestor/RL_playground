@@ -8,7 +8,6 @@ class TDPrediction(BaseMazeModelFreeAlgorithm):
     Temporal Difference (TD(0)) Policy Evaluation.
     Estimates the state-value function V(s) for a given policy by bootstrapping
     from the current estimates of next states. 
-    This is the V(s) equivalent of the SARSA update.
     """
     def __init__(self, env: MazeEnv, gamma: float = 0.99, alpha: float = 0.1):
         super().__init__(env, gamma)
@@ -44,6 +43,7 @@ class TDPrediction(BaseMazeModelFreeAlgorithm):
         first_success_recorded = False
         
         for ep in range(1, num_episodes + 1):
+            # Restart from initial state at the beg of each episode
             state = self.env.reset()
             current_ep_history = []
             
@@ -101,7 +101,8 @@ class TDPrediction(BaseMazeModelFreeAlgorithm):
 class TDLambdaPrediction(BaseMazeModelFreeAlgorithm):
     """
     Temporal Difference (TD(lambda)) Policy Evaluation.
-    Estimates the state-value function V(s) for a given policy using eligibility traces.
+    Estimates the state-value function V(s) for a given policy using backward view 
+    TD approach via eligibility traces.
     TD(lambda) bridges the gap between TD(0) (lambda=0) and Monte Carlo (lambda=1).
     """
     def __init__(self, env: MazeEnv, gamma: float = 0.99, alpha: float = 0.1, lam: float = 0.9):
