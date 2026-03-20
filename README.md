@@ -25,7 +25,7 @@ The codebase includes tabular implementations of fundamental RL algorithms, cate
 - `algorithms/`: Contains the pure, clear Python implementations of the classical RL algorithms.
 - `envs/`: Defines the environments used to train and test the algorithms.
 - `utils/`: Contains utilities, particularly the visualization functions.
-- **Jupyter Notebooks**: Several notebooks (`.ipynb`) that tie together the algorithms, environments, and visualizations to provide an interactive understanding of the learning processes.
+- *Jupyter Notebooks*: Several notebooks (`.ipynb`) that tie together the algorithms, environments, and visualizations to provide an interactive understanding of the learning processes.
 
 ## Getting Started
 
