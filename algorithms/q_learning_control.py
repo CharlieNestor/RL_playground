@@ -52,6 +52,8 @@ class QLearningControl(BaseMazeModelFreeAlgorithm):
         self.episode_rewards = []
         self.episode_lengths = []
         self.paths = []
+        self.Q_history = []
+        self.epsilon_history = []
         
         for ep in range(1, num_episodes + 1):
             state = self.env.reset()
@@ -90,6 +92,12 @@ class QLearningControl(BaseMazeModelFreeAlgorithm):
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
                 self.epsilon = max(self.epsilon_min, self.epsilon)
+            
+            self.epsilon_history.append(self.epsilon)
+                
+            # Store intermediate Q-values for visualization
+            q_copy = {s: {a: q for a, q in q_vals.items()} for s, q_vals in self.Q.items()}
+            self.Q_history.append(q_copy)
 
         if verbose:
             elapsed_time = time.time() - start_time

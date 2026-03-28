@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from typing import Dict, Tuple
 
 from envs.maze_env import MazeEnv
@@ -236,3 +237,134 @@ def plot_combined_chart(
 
     plt.tight_layout()
     plt.show()
+
+def plot_q_values(
+    env: MazeEnv, 
+    algorithm: str,
+    Q: Dict[Tuple[int, int], Dict[int, float]],
+    iteration: int,
+    show_values: bool = True,
+    show_best_action: bool = True) -> None:
+    """
+    Renders the maze environment grid and overlays the Q-values using four colored triangles per cell.
+    
+    :param env: The maze environment object.
+    :param algorithm: The name of the algorithm.
+    :param Q: A dictionary mapping states (row, col) to a dictionary of action values.
+    :param iteration: The current iteration number (or episode).
+    :param show_values: If True, prints the exact Q-value number in each triangle.
+    :param show_best_action: If True, draws an arrow in the center of each cell pointing to the max Q-value direction.
+    """
+    fig, ax = plt.subplots(figsize=(env.width, env.height))
+    
+    ax.set_xticks(np.arange(-0.5, env.width, 1))
+    ax.set_yticks(np.arange(-0.5, env.height, 1))
+    ax.set_xlim(-0.5, env.width - 0.5)
+    ax.set_ylim(-0.5, env.height - 0.5)
+    ax.invert_yaxis()
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.tick_params(axis='both', length=0)
+    ax.grid(color='black', linestyle='-', linewidth=2)
+    ax.set_title(f"{algorithm} - Q-Values (Episode {iteration})", fontsize=14)
+    
+    # Extract all Q-values to find min and max for normalization
+    all_q = []
+    for state_q in Q.values():
+        all_q.extend(state_q.values())
+        
+    vmin = min(all_q) if all_q else -1.0
+    vmax = max(all_q) if all_q else 1.0
+    
+    if vmin == vmax:
+        vmin -= 1.0
+        vmax += 1.0
+        
+    cmap = plt.cm.RdYlGn
+    
+    # Calculate a valid linthresh based on the smallest non-zero magnitude
+    magnitudes = [abs(q) for q in all_q if abs(q) > 1e-5]
+    linthresh = min(magnitudes) if magnitudes else 0.01
+    
+    # Logarithmic scale handles exponential decay (gamma) from highly varying rewards
+    # SymLogNorm works symmetrically for both high positive rewards and deep negative penalties
+    norm = mcolors.SymLogNorm(linthresh=max(linthresh, 1e-5), vmin=vmin, vmax=vmax, base=10)
+
+    action_to_arrow = {
+        0: '↑',
+        1: '↓',
+        2: '←',
+        3: '→'
+    }
+
+    def get_triangle(r, c, action):
+        if action == 0: return [(c, r), (c - 0.5, r - 0.5), (c + 0.5, r - 0.5)] # UP
+        if action == 1: return [(c, r), (c + 0.5, r + 0.5), (c - 0.5, r + 0.5)] # DOWN
+        if action == 2: return [(c, r), (c - 0.5, r + 0.5), (c - 0.5, r - 0.5)] # LEFT
+        if action == 3: return [(c, r), (c + 0.5, r - 0.5), (c + 0.5, r + 0.5)] # RIGHT
+        return []
+
+    for r in range(env.height):
+        for c in range(env.width):
+            val = env.maze[r][c]
+            
+            if val == 'X':
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#404040'))
+            elif val == 'G':
+                # Light green background for goal
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ccffcc'))
+                ax.text(c, r, "G", ha='center', va='center', fontsize=20, fontweight='bold')
+            elif val == 'S':
+                # Light yellow background for start
+                ax.add_patch(plt.Rectangle((c - 0.5, r - 0.5), 1, 1, facecolor='#ffffcc'))
+
+            if val not in ['X', 'G'] and (r, c) in Q:
+                state_q = Q.get((r, c), {})
+                
+                # 1. Draw the Colored Triangles
+                for action, q_val in state_q.items():
+                    triangle = get_triangle(r, c, action)
+                    if triangle:
+                        color = cmap(norm(q_val))
+                        poly = plt.Polygon(triangle, facecolor=color, edgecolor='black', linewidth=0.5)
+                        ax.add_patch(poly)
+                        
+                        # Only show values if flag is enabled
+                        if show_values:
+                            dx, dy = 0, 0
+                            if action == 0: dy = -0.3
+                            if action == 1: dy = 0.3
+                            if action == 2: dx = -0.3
+                            if action == 3: dx = 0.3
+                            
+                            n_val = norm(q_val)
+                            text_color = 'white' if n_val < 0.2 or n_val > 0.8 else 'black'
+                            
+                            ax.text(c + dx, r + dy, f"{q_val:.1f}", ha='center', va='center', 
+                                    fontsize=8, color=text_color, fontweight='bold')
+                        
+                # 2. Draw separating lines
+                ax.plot([c - 0.5, c + 0.5], [r - 0.5, r + 0.5], color='black', linewidth=0.5)
+                ax.plot([c - 0.5, c + 0.5], [r + 0.5, r - 0.5], color='black', linewidth=0.5)
+                
+                # 3. Outline the cell
+                ax.plot([c - 0.5, c + 0.5, c + 0.5, c - 0.5, c - 0.5],
+                        [r - 0.5, r - 0.5, r + 0.5, r + 0.5, r - 0.5],
+                        color='black', linewidth=1)
+                
+                # 4. Draw Best Action Arrow in the center
+                if show_best_action and state_q:
+                    best_action = max(state_q, key=state_q.get)
+                    arrow = action_to_arrow.get(best_action, '')
+                    # We make the arrow bold, large, and black to stand out in the middle
+                    ax.text(c, r, arrow, ha='center', va='center', fontsize=20, 
+                            fontweight='bold', color='black', 
+                            bbox=dict(facecolor='white', alpha=0.5, edgecolor='none', boxstyle='circle,pad=0.1'))
+
+    # Add a colorbar
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04, label="Q-Value")
+
+    plt.show()
+
